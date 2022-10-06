@@ -68,6 +68,11 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
         TurnCostStorage tcs = graph.getTurnCostStorage();
         int viaNode = map.getInternalNodeIdOfOsmNode(osmTurnRestriction.getViaOSMIds().get(0));
 
+        // street with restriction was not included (access or tag limits etc)
+        if (viaNode < 0) {
+            return;
+        }
+
         EdgeExplorer edgeOutExplorer = getOutExplorer(graph), edgeInExplorer = getInExplorer(graph);
 
         try {
@@ -77,8 +82,11 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
             EdgeIterator iter = edgeInExplorer.setBaseNode(viaNode);
 
             while (iter.next()) {
-                if (map.getOsmIdOfInternalEdge(iter.getEdge()) == osmTurnRestriction.getOsmIdFrom()) {
-                    edgeIdFrom = iter.getEdge();
+            	long from_osm_id = osmTurnRestriction.getOsmIdFrom();
+            	int from_candidate_internal_id = iter.getEdge();
+            	long from_candidate_osm_id = map.getOsmIdOfInternalEdge(from_candidate_internal_id);
+                if (from_candidate_osm_id == from_osm_id) {
+                    edgeIdFrom = from_candidate_internal_id;
                     break;
                 }
             }
