@@ -25,9 +25,9 @@ import java.util.*;
  * @author Karl Hübner
  */
 public class OSMTurnRestriction {
-    private final long fromOsmWayId;
-    private final ArrayList<Long> viaOSMIds;
-    private final long toOsmWayId;
+    public long fromOsmWayId;
+    public ArrayList<Long> viaOSMIds;
+    public long toOsmWayId;
     private final RestrictionType restriction;
     private final ViaType viaType;
     // vehicleTypeRestricted contains the dedicated vehicle type
@@ -45,6 +45,7 @@ public class OSMTurnRestriction {
         this.vehicleTypesExcept = new ArrayList<>();
     }
 
+    // convenient constructor for single via node/way restrictions.
     public OSMTurnRestriction(long fromWayID, long viaId, long toWayID, RestrictionType restrictionType, ViaType viaType) {
         this(fromWayID, new ArrayList<>(Arrays.asList(viaId)), toWayID, restrictionType, viaType);
     }
@@ -59,6 +60,16 @@ public class OSMTurnRestriction {
 
     public ArrayList<Long> getViaOSMIds() {
         return viaOSMIds;
+    }
+
+    public ArrayList<Long> getWays() {
+        ArrayList<Long> ways = new ArrayList<>();
+        ways.add(fromOsmWayId);
+        if (viaType == ViaType.WAY || viaType == ViaType.MULTI_WAY) {
+            ways.addAll(viaOSMIds);
+        }
+        ways.add(toOsmWayId);
+        return ways;
     }
 
     public RestrictionType getRestriction() {
