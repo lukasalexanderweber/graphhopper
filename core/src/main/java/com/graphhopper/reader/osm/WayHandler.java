@@ -3,6 +3,7 @@ package com.graphhopper.reader.osm;
 import static com.graphhopper.reader.osm.OSMNodeData.isNodeId;
 import static com.graphhopper.reader.osm.OSMNodeData.isPillarNode;
 import static com.graphhopper.reader.osm.OSMNodeData.isTowerNode;
+import static com.graphhopper.search.EdgeKVStorage.KeyValue.*;
 import static com.graphhopper.util.Helper.nf;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -115,28 +116,28 @@ public class WayHandler extends WayHandlerBase {
             if (name.isEmpty())
                 name = fixWayName(way.getTag("name"));
             if (!name.isEmpty())
-                list.add(new EdgeKVStorage.KeyValue("name", name));
+                list.add(new EdgeKVStorage.KeyValue(STREET_NAME, name));
 
             // http://wiki.openstreetmap.org/wiki/Key:ref
             String refName = fixWayName(way.getTag("ref"));
             if (!refName.isEmpty())
-                list.add(new EdgeKVStorage.KeyValue("ref", refName));
+                list.add(new EdgeKVStorage.KeyValue(STREET_REF, refName));
 
             if (way.hasTag("destination:ref")) {
-                list.add(new EdgeKVStorage.KeyValue("destination_ref", fixWayName(way.getTag("destination:ref"))));
+                list.add(new EdgeKVStorage.KeyValue(STREET_DESTINATION_REF, fixWayName(way.getTag("destination:ref"))));
             } else {
                 if (way.hasTag("destination:ref:forward"))
-                    list.add(new EdgeKVStorage.KeyValue("destination_ref", fixWayName(way.getTag("destination:ref:forward")), true, false));
+                    list.add(new EdgeKVStorage.KeyValue(STREET_DESTINATION_REF, fixWayName(way.getTag("destination:ref:forward")), true, false));
                 if (way.hasTag("destination:ref:backward"))
-                    list.add(new EdgeKVStorage.KeyValue("destination_ref", fixWayName(way.getTag("destination:ref:backward")), false, true));
+                    list.add(new EdgeKVStorage.KeyValue(STREET_DESTINATION_REF, fixWayName(way.getTag("destination:ref:backward")), false, true));
             }
             if (way.hasTag("destination")) {
-                list.add(new EdgeKVStorage.KeyValue("destination", fixWayName(way.getTag("destination"))));
+                list.add(new EdgeKVStorage.KeyValue(STREET_DESTINATION, fixWayName(way.getTag("destination"))));
             } else {
                 if (way.hasTag("destination:forward"))
-                    list.add(new EdgeKVStorage.KeyValue("destination", fixWayName(way.getTag("destination:forward")), true, false));
+                    list.add(new EdgeKVStorage.KeyValue(STREET_DESTINATION, fixWayName(way.getTag("destination:forward")), true, false));
                 if (way.hasTag("destination:backward"))
-                    list.add(new EdgeKVStorage.KeyValue("destination", fixWayName(way.getTag("destination:backward")), false, true));
+                    list.add(new EdgeKVStorage.KeyValue(STREET_DESTINATION, fixWayName(way.getTag("destination:backward")), false, true));
             }
         }
         way.setTag("key_values", list);
@@ -266,13 +267,17 @@ public class WayHandler extends WayHandlerBase {
 
         // special handling for countries: since they are built-in with GraphHopper they are always fed to the EncodingManager
         Country country = Country.MISSING;
+        CustomArea prevCustomArea = null;
         for (CustomArea customArea : customAreas) {
-            Object countryCode = customArea.getProperties().get("ISO3166-1:alpha3");
-            if (countryCode == null)
+        	Object alpha3 = customArea.getProperties().get(Country.ISO_ALPHA3);
+            if (alpha3 == null)
                 continue;
-            if (country != Country.MISSING)
-                LOGGER.warn("Multiple countries found for way {}: {}, {}", way.getId(), country, countryCode);
-            country = Country.valueOf(countryCode.toString());
+            // multiple countries are available -> pick the smaller one, see #2663
+            if (prevCustomArea != null && prevCustomArea.getArea() < customArea.getArea())
+                break;
+
+            prevCustomArea = customArea;
+            country = Country.valueOf((String) alpha3);
         }
         way.setTag("country", country);
 
@@ -479,7 +484,6 @@ public class WayHandler extends WayHandlerBase {
             checkCoordinates(toIndex, pointList.get(pointList.size() - 1));
             edge.setWayGeometry(pointList.shallowCopy(1, pointList.size() - 1, false));
         }
-        osmParsers.applyWayTags(way, edge);
 
         checkDistance(edge);
         if (restrictionData.osmWayIdSet.contains(way.getId())) {
