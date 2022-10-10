@@ -1009,7 +1009,25 @@ public class OSMReaderTest {
         iter.next();
         assertEquals(Country.BGR, iter.get(countryEnc));
     }
+    
+    @Test
+    public void testOsmInvalidWayBeforeNodes() {
+        String fileInvalid = "test-osm-invalid-way-before-nodes.xml";
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            new GraphHopperFacade(fileInvalid).importOrLoad();
+        });
+        assertEquals(exception.getCause().getMessage(), "Invalid OSM File: WAY after Header");
+    }
 
+    @Test
+    public void testOsmInvalidRelationBeforeWay() {
+        String fileInvalid = "test-osm-invalid-relation-after-nodes.xml";
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            new GraphHopperFacade(fileInvalid).importOrLoad();
+        });
+        assertEquals(exception.getCause().getMessage(), "Invalid OSM File: RELATION after Node");
+    }
+    
     @Test
     public void testFixWayName() {
         assertEquals("B8, B12", WayHandler.fixWayName("B8;B12"));

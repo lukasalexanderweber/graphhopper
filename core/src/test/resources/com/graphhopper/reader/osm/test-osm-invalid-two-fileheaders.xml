@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" generator="pbf2osm" timestamp="2013-01-02T01:10:14Z">
+<osm version="0.6" generator="pbf2osm" timestamp="2013-01-02T01:10:14Z">
+    <node id="50" lat="49" lon="10" version="24857"></node>
+    <node id="60" lat="50" lon="10" version="24857"></node>
+	
+	<way id="10" version="85761">
+        <nd ref="50"/>
+        <nd ref="60"/>
+    </way>
+</osm>
+</osm>
