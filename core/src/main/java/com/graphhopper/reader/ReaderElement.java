@@ -29,10 +29,10 @@ import java.util.Map.Entry;
  */
 public abstract class ReaderElement {
     public static enum Type {
+        FILEHEADER,
         NODE,
         WAY,
-        RELATION,
-        FILEHEADER;
+        RELATION;
     }
 
     private final long id;

@@ -171,7 +171,7 @@ public class OSMReader {
         LOGGER.info("preprocessing ways - start");
         StopWatch sw1 = StopWatch.started();
         OSMParse1 parse1 = new OSMParse1(getWayPreprocessor(), getRelationPreprocessor());
-        readOSM(osmFile, parse1);
+        parse1.readOSM(osmFile, workerThreads);
         LOGGER.info("preprocessing ways - finished, took: {}", sw1.stop().getTimeString());
 
         long nodes = nodeData.getNodeCount();
@@ -181,7 +181,7 @@ public class OSMReader {
         LOGGER.info("graph creation - start");
         StopWatch sw2 = new StopWatch().start();
         OSMParse2 parse2 = new OSMParse2(getNodeHandler(), getWayHandler(), getRelationHandler());
-        readOSM(osmFile, parse2);
+        parse2.readOSM(osmFile, workerThreads);
         LOGGER.info("graph creation - finished, took: {}", sw2.stop().getTimeString());
 
         nodeData.release();
@@ -199,23 +199,6 @@ public class OSMReader {
         finishedReading();
     }
     
-    private void readOSM(File file, OSMParseInterface parser) {
-        try (OSMInput osmInput = openOsmInputFile(file)) {
-            ReaderElement elem;
-            while ((elem = osmInput.getNext()) != null)
-            	parser.handleElement(elem);
-            parser.onFinish();
-            if (osmInput.getUnprocessedElements() > 0)
-                throw new IllegalStateException("There were some remaining elements in the reader queue " + osmInput.getUnprocessedElements());
-        } catch (Exception e) {
-            throw new RuntimeException("Could not parse OSM file: " + file.getAbsolutePath(), e);
-        }
-    }
-
-    protected OSMInput openOsmInputFile(File osmFile) throws XMLStreamException, IOException {
-        return new OSMInputFile(osmFile).setWorkerThreads(workerThreads).open();
-    }
-
     /**
      * @return the timestamp given in the OSM file header or null if not found
      */
