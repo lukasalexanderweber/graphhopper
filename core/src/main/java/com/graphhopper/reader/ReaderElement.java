@@ -44,7 +44,11 @@ public abstract class ReaderElement {
     }
 
     protected ReaderElement(long id, Type type, Map<String, Object> properties) {
-        if (id < 0) {
+        this(id, type, properties, false);
+    }
+    
+    protected ReaderElement(long id, Type type, Map<String, Object> properties, boolean artificial) {
+        if (!artificial && id < 0) { // negative ids are only allowed for artificial elements
             throw new IllegalArgumentException("Invalid OSM " + type + " Id: " + id + "; Ids must not be negative");
         }
         this.id = id;

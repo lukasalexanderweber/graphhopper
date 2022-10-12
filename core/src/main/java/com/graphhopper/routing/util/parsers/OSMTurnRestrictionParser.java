@@ -50,7 +50,7 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
         if (!turnRestriction.isVehicleTypeConcernedByTurnRestriction(restrictions))
             return;
 
-        addRelationToTCStorage(turnRestriction, map, graph);
+        addRestrictionToTCStorage(turnRestriction, map, graph);
     }
 
     private EdgeExplorer getInExplorer(Graph graph) {
@@ -64,7 +64,7 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
     /**
      * Add the specified relation to the TurnCostStorage
      */
-    void addRelationToTCStorage(OSMTurnRestriction osmTurnRestriction, ExternalInternalMap map, Graph graph) {
+    void addRestrictionToTCStorage(OSMTurnRestriction osmTurnRestriction, ExternalInternalMap map, Graph graph) {
         TurnCostStorage tcs = graph.getTurnCostStorage();
         int viaNode = map.getInternalNodeIdOfOsmNode(osmTurnRestriction.getViaOSMIds().get(0));
 

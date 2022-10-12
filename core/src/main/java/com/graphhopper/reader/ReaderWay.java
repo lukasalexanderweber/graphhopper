@@ -17,6 +17,8 @@
  */
 package com.graphhopper.reader;
 
+import java.util.Map;
+
 import com.carrotsearch.hppc.LongArrayList;
 
 /**
@@ -26,16 +28,28 @@ import com.carrotsearch.hppc.LongArrayList;
  * @author Nop
  */
 public class ReaderWay extends ReaderElement {
-    protected final LongArrayList nodes = new LongArrayList(5);
+    protected LongArrayList nodes = new LongArrayList(5);
 
     public ReaderWay(long id) {
         super(id, Type.WAY);
     }
 
+    public ReaderWay(long id, Map<String, Object> properties, LongArrayList nodes) {
+        super(id, Type.WAY, properties, true);
+        this.nodes = nodes;
+    }
+    
     public LongArrayList getNodes() {
         return nodes;
     }
 
+    public Long[] getEndNodes() {
+        Long[] endNodes = new Long[2];
+        endNodes[0] = nodes.get(0);
+        endNodes[1] = nodes.get(nodes.size() - 1);
+        return endNodes;
+    }
+    
     @Override
     public String toString() {
         return "Way id:" + getId() + ", nodes:" + nodes.size() + ", tags:" + super.toString();

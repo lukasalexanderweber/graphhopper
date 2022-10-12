@@ -16,15 +16,17 @@ import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.util.Helper;
 
 public class WayPreprocessor extends WayHandlerBase {
-    private static final Logger LOGGER = LoggerFactory.getLogger(WayHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WayPreprocessor.class);
 	
     private long acceptedWays = 0;
 
     private OSMNodeData nodeData;
+    private OSMTurnRestrictionData restrictionData;
     
-	public WayPreprocessor(OSMParsers osmParsers, OSMNodeData nodeData) {
+	public WayPreprocessor(OSMParsers osmParsers, OSMNodeData nodeData, OSMTurnRestrictionData restrictionData) {
 		super(osmParsers);
 		this.nodeData = nodeData;
+		this.restrictionData = restrictionData;
 	}
 	
 	@Override
@@ -50,6 +52,8 @@ public class WayPreprocessor extends WayHandlerBase {
             return;
         acceptedWays++;
 
+        mapWayIfPartOfViaWayTurnRestriction(way);
+        
         for (LongCursor node : way.getNodes()) {
             final boolean isEnd = node.index == 0 || node.index == way.getNodes().size() - 1;
             final long osmId = node.value;
@@ -57,6 +61,12 @@ public class WayPreprocessor extends WayHandlerBase {
                     isEnd ? END_NODE : INTERMEDIATE_NODE,
                     // connection nodes are those where (only) two OSM ways are connected at their ends
                     prev -> prev == END_NODE && isEnd ? CONNECTION_NODE : JUNCTION_NODE);
+        }
+    }
+    
+    protected void mapWayIfPartOfViaWayTurnRestriction(ReaderWay way) {
+        if (restrictionData.osmWayMap.containsKey(way.getId())) {
+            restrictionData.osmWayMap.put(way.getId(), way);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.graphhopper.reader.osm;
 
 import static com.graphhopper.util.Helper.nf;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderRelation;
+import com.graphhopper.reader.osm.OSMTurnRestriction.ViaType;
 import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.storage.IntsRef;
 import com.graphhopper.util.Helper;
@@ -27,7 +29,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
 	
 	@Override
 	public void onStart() {
-	    LOGGER.info("pass1 - start reading OSM relations");
+	    LOGGER.info("pass0 - start reading OSM relations");
 	}
 	
 	@Override
@@ -39,7 +41,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
 	
 	@Override
 	public void onFinish() {
-	    LOGGER.info("pass1 - finished reading OSM relations, processed relations: ",
+	    LOGGER.info("pass0 - finished reading OSM relations, processed relations: ",
 	                    nf(counter) + ", " + Helper.getMemInfo());
 	}
 
@@ -62,8 +64,18 @@ public class RelationPreprocessor extends RelationHandlerBase {
             // id.
             List<OSMTurnRestriction> turnRestrictions = createTurnRestrictions(relation);
             for (OSMTurnRestriction turnRestriction : turnRestrictions) {
-                restrictionData.osmWayIdSet.add(turnRestriction.getOsmIdFrom());
-                restrictionData.osmWayIdSet.add(turnRestriction.getOsmIdTo());
+                ArrayList<Long> ways = turnRestriction.getWays();
+                
+                if (turnRestriction.getViaType() == ViaType.WAY) {
+                    restrictionData.wayRestrictions.add(new WayRestriction(relation.getId(), ways));
+                    restrictionData.osmWayIdsToIgnore.add(ways.get(0));
+                }
+                
+                for (Long wayId : ways) {
+                    restrictionData.osmWayIdSet.add(wayId);
+                    if (turnRestriction.getViaType() == ViaType.WAY)
+                        restrictionData.osmWayMap.put(wayId, null);
+                }
             }
         }
     }

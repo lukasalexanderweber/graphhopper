@@ -2,6 +2,9 @@ package com.graphhopper.reader.osm;
 
 import static com.graphhopper.reader.osm.OSMNodeData.isTowerNode;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,18 +22,24 @@ public class RelationHandler extends RelationHandlerBase {
 	private final TurnCostStorage turnCostStorage;
 	private OSMNodeData nodeData;
     private OSMTurnRestrictionData restrictionData;
+    private WayHandler wayHandler;
 
-    public RelationHandler (BaseGraph baseGraph, OSMParsers osmParsers, TurnCostStorage turnCostStorage, OSMNodeData nodeData, OSMTurnRestrictionData restrictionData) {
+    public RelationHandler (BaseGraph baseGraph, OSMParsers osmParsers, TurnCostStorage turnCostStorage, OSMNodeData nodeData, OSMTurnRestrictionData restrictionData, WayHandler wayHandler) {
         this.baseGraph = baseGraph;
     	this.osmParsers = osmParsers;
     	this.turnCostStorage = turnCostStorage;
     	this.nodeData = nodeData;
     	this.restrictionData = restrictionData;
+    	this.wayHandler = wayHandler;
     }
 
     @Override
     public void onStart() {
         LOGGER.info("pass2 - start reading OSM relations");
+        LOGGER.info("building restrictions...");
+        OSMTurnRestrictionBuilder builder = new OSMTurnRestrictionBuilder(nodeData, restrictionData, wayHandler);
+        builder.buildRestrictions();
+        LOGGER.info("finished building restrictions!");
     }
     
     @Override
@@ -63,9 +72,20 @@ public class RelationHandler extends RelationHandlerBase {
                 }
             };
             for (OSMTurnRestriction turnRestriction : createTurnRestrictions(relation)) {
-            	if (turnRestriction.getViaType() == OSMTurnRestriction.ViaType.NODE)
-            	    osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                if (turnRestriction.getViaType() == OSMTurnRestriction.ViaType.NODE)
+                    osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                if (turnRestriction.getViaType() == OSMTurnRestriction.ViaType.WAY) {
+                    if (!restrictionData.artificialNodeRestrictions.containsKey(turnRestriction.getId()))
+                        return;
+                    for (NodeRestriction nodeRestriction : restrictionData.artificialNodeRestrictions.get(turnRestriction.getId())){
+                        turnRestriction.fromOsmWayId = nodeRestriction.getFrom();
+                        turnRestriction.viaOSMIds = new ArrayList<>(Arrays.asList(nodeRestriction.getVia()));
+                        turnRestriction.toOsmWayId = nodeRestriction.getTo();
+                        osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                    }
+                }
             }
+
         }
     }
     

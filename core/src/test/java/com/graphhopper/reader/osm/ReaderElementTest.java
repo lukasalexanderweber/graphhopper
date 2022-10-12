@@ -17,13 +17,17 @@
  */
 package com.graphhopper.reader.osm;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderWay;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -56,6 +60,44 @@ public class ReaderElementTest {
             new ReaderWay(-1);
         });
         assertTrue(exception.getMessage().contains("Invalid OSM WAY Id: -1;"));
+    }
+    
+    @Test
+    public void testWayRestrictionBuild() {
+        // the ways listed inside a via way restriction
+        List<Long> ways = new ArrayList<Long>();
+        ways.add(12L); // from
+        ways.add(23L); // via
+        ways.add(34L); // to
+
+        // mocking these ways
+        LongArrayList nodes12 = new LongArrayList();
+        nodes12.add(1L);
+        nodes12.add(2L);
+        ReaderWay way12 = new ReaderWay(12L, emptyMap(), nodes12);
+        LongArrayList nodes23 = new LongArrayList();
+        nodes23.add(2L);
+        nodes23.add(3L);
+        ReaderWay way23 = new ReaderWay(23L, emptyMap(), nodes23);
+        LongArrayList nodes34 = new LongArrayList();
+        nodes34.add(3L);
+        nodes34.add(4L);
+        ReaderWay way34 = new ReaderWay(34L, emptyMap(), nodes34);
+        
+        // mocking the wayMap created during first parse
+        HashMap<Long, ReaderWay> wayMap = new HashMap<>();
+        wayMap.put(12L, way12);
+        wayMap.put(23L, way23);
+        wayMap.put(34L, way34);
+
+        WayRestriction restriction = new WayRestriction(1L, ways);
+        restriction.buildRestriction(wayMap);
+
+        NodeRestriction r1 = restriction.getRestrictions().get(0);
+        NodeRestriction r2 = restriction.getRestrictions().get(1);
+
+        assertEquals(r1.toString(), new NodeRestriction(12L, 2L, 23L).toString());
+        assertEquals(r2.toString(), new NodeRestriction(23L, 3L, 34L).toString());
     }
 
 }

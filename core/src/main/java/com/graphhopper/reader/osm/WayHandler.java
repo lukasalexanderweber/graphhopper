@@ -358,7 +358,7 @@ public class WayHandler extends WayHandlerBase {
             if (!nodeTags.isEmpty()) {
                 // this node is a barrier. we will copy it and add an extra edge
                 SegmentNode barrierFrom = node;
-                SegmentNode barrierTo = nodeData.addCopyOfNode(node);
+                SegmentNode barrierTo = nodeData.addCopyOfNodeAsPillarNode(node);
                 if (i == parentSegment.size() - 1) {
                     // make sure the barrier node is always on the inside of the segment
                     SegmentNode tmp = barrierFrom;
@@ -423,7 +423,11 @@ public class WayHandler extends WayHandlerBase {
      * @param way       the OSM way this segment was taken from
      * @param nodeTags  node tags of this segment if it is an artificial edge, empty otherwise
      */
-    protected void addEdge(int fromIndex, int toIndex, PointList pointList, ReaderWay way, Map<String, Object> nodeTags) {    	
+    protected void addEdge(int fromIndex, int toIndex, PointList pointList, ReaderWay way, Map<String, Object> nodeTags) {
+        if (restrictionData.osmWayIdsToIgnore.contains(way.getId())){
+            return;
+        }
+
     	// sanity checks
         if (fromIndex < 0 || toIndex < 0)
             throw new AssertionError("to or from index is invalid for this edge " + fromIndex + "->" + toIndex + ", points:" + pointList);

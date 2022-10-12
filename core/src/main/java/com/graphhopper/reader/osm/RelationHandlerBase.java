@@ -88,7 +88,7 @@ public abstract class RelationHandlerBase extends ElementHandler {
                 List<OSMTurnRestriction> res = new ArrayList<>(2);
                 for (ReaderRelation.Member member : relation.getMembers()) {
                     if (ReaderElement.Type.WAY == member.getType() && "from".equals(member.getRole())) {
-                        OSMTurnRestriction OSMTurnRestriction = new OSMTurnRestriction(member.getRef(), viaIDs, toWayID, type, viaType);
+                        OSMTurnRestriction OSMTurnRestriction = new OSMTurnRestriction(relation.getId(), member.getRef(), viaIDs, toWayID, type, viaType);
                         OSMTurnRestriction.setVehicleTypeRestricted(vehicleTypeRestricted);
                         OSMTurnRestriction.setVehicleTypesExcept(vehicleTypesExcept);
                         res.add(OSMTurnRestriction);
