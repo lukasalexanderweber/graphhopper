@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderWay;
 import com.graphhopper.reader.dem.EdgeElevationSmoothing;
 import com.graphhopper.reader.dem.EdgeSampling;
@@ -39,7 +40,6 @@ import com.graphhopper.util.DistanceCalc;
 import com.graphhopper.util.DistanceCalcEarth;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.FetchMode;
-import com.graphhopper.util.Helper;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.RamerDouglasPeucker;
 import com.graphhopper.util.shapes.GHPoint;
@@ -50,7 +50,6 @@ public class WayHandler extends WayHandlerBase {
     private static final Pattern WAY_NAME_PATTERN = Pattern.compile("; *");
     private final DistanceCalc distCalc = DistanceCalcEarth.DIST_EARTH;
     
-    private long wayCounter;
     private long zeroCounter = 0;
     
     private BaseGraph baseGraph;
@@ -71,7 +70,6 @@ public class WayHandler extends WayHandlerBase {
     		ElevationProvider eleProvider, CountryRuleFactory countryRuleFactory,
     		AreaIndex<CustomArea> areaIndex, EncodingManager encodingManager) {
     	super(osmParsers);
-    	this.wayCounter = -1;
     	this.baseGraph = baseGraph;
     	this.nodeData = nodeData;
 		this.restrictionData = restrictionData;
@@ -85,10 +83,25 @@ public class WayHandler extends WayHandlerBase {
 		this.encodingManager = encodingManager;
     }
     
+    @Override
+    public void onStart() {
+        LOGGER.info("pass2 - start reading OSM ways");
+    }
+    
+    @Override
+    public void handleElement(ReaderElement elem) {
+        counter++;
+        logEvery(LOGGER, 10_000_000);
+        handleWay((ReaderWay) elem);
+    }
+    
+    @Override
+    public void onFinish() {
+        LOGGER.info("pass2 - finished reading OSM ways, processed ways: {}, zero distance edges: {}", 
+                        nf(counter), nf(zeroCounter));
+    }
+    
     public void handleWay(ReaderWay way) {
-        if (++wayCounter % 10_000_000 == 0)
-            LOGGER.info("pass2 - processed ways: " + nf(wayCounter) + ", " + Helper.getMemInfo());
-        
         if (!acceptWay(way))
             return;
         

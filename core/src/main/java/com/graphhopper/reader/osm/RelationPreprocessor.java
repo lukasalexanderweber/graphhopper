@@ -1,13 +1,20 @@
 package com.graphhopper.reader.osm;
 
+import static com.graphhopper.util.Helper.nf;
+
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderRelation;
 import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.storage.IntsRef;
+import com.graphhopper.util.Helper;
 
 public class RelationPreprocessor extends RelationHandlerBase {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RelationPreprocessor.class);
 	private final OSMParsers osmParsers;
 	private final OSMTurnRestrictionData restrictionData;
 	private final RelationFlagsData relationFlagsData;
@@ -17,8 +24,26 @@ public class RelationPreprocessor extends RelationHandlerBase {
 		this.restrictionData = restrictionData;
 		this.relationFlagsData = relationFlagsData;
 	}
+	
+	@Override
+	public void onStart() {
+	    LOGGER.info("pass1 - start reading OSM relations");
+	}
+	
+	@Override
+	public void handleElement(ReaderElement elem) {
+        counter++;
+        logEvery(LOGGER, 10_000_000);
+        preprocessRelation((ReaderRelation) elem);
+	}
+	
+	@Override
+	public void onFinish() {
+	    LOGGER.info("pass1 - finished reading OSM relations, processed relations: ",
+	                    nf(counter) + ", " + Helper.getMemInfo());
+	}
 
-    protected void preprocessRelation(ReaderRelation relation) {
+    protected void preprocessRelation(ReaderRelation relation) {        
         if (!relation.isMetaRelation() && relation.hasTag("type", "route")) {
             // we keep track of all route relations, so they are available when we create edges later
             for (ReaderRelation.Member member : relation.getMembers()) {

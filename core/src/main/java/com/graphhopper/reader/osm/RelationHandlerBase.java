@@ -9,12 +9,17 @@ import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderRelation;
 import com.graphhopper.util.Helper;
 
-public abstract class RelationHandlerBase {
+public abstract class RelationHandlerBase extends ElementHandler {
+    
+    public RelationHandlerBase() {
+        super(ReaderElement.Type.RELATION);
+    }
+
     /**
      * Creates turn relations out of an unspecified OSM relation
      */
     static List<OSMTurnRestriction> createTurnRestrictions(ReaderRelation relation) {
-        List<OSMTurnRestriction> osmTurnRelations = new ArrayList<>();
+        List<OSMTurnRestriction> OSMTurnRestrictions = new ArrayList<>();
         String vehicleTypeRestricted = "";
         List<String> vehicleTypesExcept = new ArrayList<>();
         if (relation.hasTag("except")) {
@@ -26,23 +31,23 @@ public abstract class RelationHandlerBase {
             }
         }
         if (relation.hasTag("restriction")) {
-            osmTurnRelations.addAll(createTurnRelations(relation, relation.getTag("restriction"),
+            OSMTurnRestrictions.addAll(createTurnRestrictions(relation, relation.getTag("restriction"),
                     vehicleTypeRestricted, vehicleTypesExcept));
-            return osmTurnRelations;
+            return OSMTurnRestrictions;
         }
         if (relation.hasTagWithKeyPrefix("restriction:")) {
             List<String> vehicleTypesRestricted = relation.getKeysWithPrefix("restriction:");
             for (String vehicleType : vehicleTypesRestricted) {
                 String restrictionType = relation.getTag(vehicleType);
                 vehicleTypeRestricted = vehicleType.replace("restriction:", "").trim();
-                osmTurnRelations.addAll(createTurnRelations(relation, restrictionType, vehicleTypeRestricted,
+                OSMTurnRestrictions.addAll(createTurnRestrictions(relation, restrictionType, vehicleTypeRestricted,
                         vehicleTypesExcept));
             }
         }
-        return osmTurnRelations;
+        return OSMTurnRestrictions;
     }
 
-    static List<OSMTurnRestriction> createTurnRelations(ReaderRelation relation, String restrictionType,
+    static List<OSMTurnRestriction> createTurnRestrictions(ReaderRelation relation, String restrictionType,
                                                         String vehicleTypeRestricted, List<String> vehicleTypesExcept) {
         OSMTurnRestriction.RestrictionType type = OSMTurnRestriction.RestrictionType.get(restrictionType);
         if (type != OSMTurnRestriction.RestrictionType.UNSUPPORTED) {
@@ -83,10 +88,10 @@ public abstract class RelationHandlerBase {
                 List<OSMTurnRestriction> res = new ArrayList<>(2);
                 for (ReaderRelation.Member member : relation.getMembers()) {
                     if (ReaderElement.Type.WAY == member.getType() && "from".equals(member.getRole())) {
-                        OSMTurnRestriction osmTurnRelation = new OSMTurnRestriction(member.getRef(), viaIDs, toWayID, type, viaType);
-                        osmTurnRelation.setVehicleTypeRestricted(vehicleTypeRestricted);
-                        osmTurnRelation.setVehicleTypesExcept(vehicleTypesExcept);
-                        res.add(osmTurnRelation);
+                        OSMTurnRestriction OSMTurnRestriction = new OSMTurnRestriction(member.getRef(), viaIDs, toWayID, type, viaType);
+                        OSMTurnRestriction.setVehicleTypeRestricted(vehicleTypeRestricted);
+                        OSMTurnRestriction.setVehicleTypesExcept(vehicleTypesExcept);
+                        res.add(OSMTurnRestriction);
                     }
                 }
                 return res;

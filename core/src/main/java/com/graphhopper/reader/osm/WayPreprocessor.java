@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderWay;
 import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.util.Helper;
@@ -17,7 +18,6 @@ import com.graphhopper.util.Helper;
 public class WayPreprocessor extends WayHandlerBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(WayHandler.class);
 	
-    private long wayCounter = 1;
     private long acceptedWays = 0;
 
     private OSMNodeData nodeData;
@@ -26,12 +26,26 @@ public class WayPreprocessor extends WayHandlerBase {
 		super(osmParsers);
 		this.nodeData = nodeData;
 	}
+	
+	@Override
+	public void onStart() {
+	    LOGGER.info("pass1 - start reading OSM ways");
+	}
+	
+	@Override
+	public void handleElement(ReaderElement elem) {
+        counter++;
+        logEvery(LOGGER, 10_000_000);
+	    preprocessWay((ReaderWay) elem);
+	}
+	
+	@Override
+	public void onFinish() {
+        LOGGER.info("pass1 - finished reading OSM ways, processed ways: " + nf(counter) + ", accepted ways: " +
+                        nf(acceptedWays) + ", way nodes: " + nf(nodeData.getNodeCount()) + " " + Helper.getMemInfo());
+	}
 
     public void preprocessWay(ReaderWay way) {
-        if (++wayCounter % 10_000_000 == 0)
-            LOGGER.info("pass1 - processed ways: " + nf(wayCounter) + ", accepted ways: " + nf(acceptedWays) +
-                    ", way nodes: " + nf(nodeData.getNodeCount()) + ", " + Helper.getMemInfo());
-
         if (!acceptWay(way))
             return;
         acceptedWays++;

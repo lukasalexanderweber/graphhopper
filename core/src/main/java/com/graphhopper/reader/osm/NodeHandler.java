@@ -7,14 +7,14 @@ import static com.graphhopper.util.Helper.nf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderNode;
 import com.graphhopper.reader.dem.ElevationProvider;
 import com.graphhopper.util.Helper;
 
-public class NodeHandler {
+public class NodeHandler extends ElementHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(NodeHandler.class);
 
-    private long nodeCounter = -1;
     private long acceptedNodes = 0;
     private long ignoredSplitNodes = 0;
     
@@ -22,15 +22,30 @@ public class NodeHandler {
     private OSMNodeData nodeData;
     
     public NodeHandler(OSMNodeData nodeData, ElevationProvider eleProvider) {
+        super(ReaderElement.Type.NODE);
     	this.nodeData = nodeData;
     	this.eleProvider = eleProvider;
     }
 
+    @Override
+    public void onStart() {
+        LOGGER.info("pass2 - start reading OSM nodes");
+    }
+    
+    @Override
+    public void handleElement(ReaderElement elem) {
+        counter++;
+        logEvery(LOGGER, 10_000_000);
+        handleNode((ReaderNode) elem);
+    }
+    
+    @Override
+    public void onFinish() {
+        LOGGER.info("pass2 - finished reading OSM nodes, way nodes: {}, with tags: {}, ignored barriers at junctions: {}",
+                        nf(acceptedNodes), nf(nodeData.getTaggedNodeCount()), nf(ignoredSplitNodes));
+    }
+    
     public void handleNode(ReaderNode node) {
-        if (++nodeCounter % 10_000_000 == 0)
-            LOGGER.info("pass2 - processed nodes: " + nf(nodeCounter) + ", accepted nodes: " + nf(acceptedNodes) +
-                    ", " + Helper.getMemInfo());
-
         int nodeType = nodeData.addCoordinatesIfMapped(node.getId(), node.getLat(), node.getLon(), () -> eleProvider.getEle(node));
         if (nodeType == EMPTY_NODE)
             return;

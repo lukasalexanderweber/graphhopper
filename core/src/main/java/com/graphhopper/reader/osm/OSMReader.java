@@ -17,7 +17,8 @@
  */
 package com.graphhopper.reader.osm;
 
-import com.graphhopper.reader.*;
+import static com.graphhopper.util.Helper.nf;
+
 import com.graphhopper.reader.dem.ElevationProvider;
 import com.graphhopper.routing.OSMReaderConfig;
 import com.graphhopper.routing.util.AreaIndex;
@@ -36,8 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
-import javax.xml.stream.XMLStreamException;
 
 /**
  * Parses an OSM file (xml, zipped xml or pbf) and creates a graph from it. The OSM file is actually read twice.
@@ -168,11 +167,14 @@ public class OSMReader {
             throw new IllegalStateException("You can only read the graph once");
 
         LOGGER.info("Start reading OSM file: '" + osmFile + "'");
-        LOGGER.info("preprocessing ways - start");
+        LOGGER.info("preprocessing ways and relations - start");
         StopWatch sw1 = StopWatch.started();
-        OSMParse1 parse1 = new OSMParse1(getWayPreprocessor(), getRelationPreprocessor());
+        OSMParser parse1 = new OSMParser()
+                        .setFileheaderHandler(new FileHeaderHandler())
+                        .setWayHandler(getWayPreprocessor())
+                        .setRelationHandler(getRelationPreprocessor());
         parse1.readOSM(osmFile, workerThreads);
-        LOGGER.info("preprocessing ways - finished, took: {}", sw1.stop().getTimeString());
+        LOGGER.info("preprocessing ways and relations - finished, took: {}", sw1.stop().getTimeString());
 
         long nodes = nodeData.getNodeCount();
 
@@ -180,7 +182,10 @@ public class OSMReader {
 
         LOGGER.info("graph creation - start");
         StopWatch sw2 = new StopWatch().start();
-        OSMParse2 parse2 = new OSMParse2(getNodeHandler(), getWayHandler(), getRelationHandler());
+        OSMParser parse2 = new OSMParser()
+                        .setNodeHandler(getNodeHandler())
+                        .setWayHandler(getWayHandler())
+                        .setRelationHandler(getRelationHandler());
         parse2.readOSM(osmFile, workerThreads);
         LOGGER.info("graph creation - finished, took: {}", sw2.stop().getTimeString());
 
@@ -194,8 +199,8 @@ public class OSMReader {
         osmDataDate = parse1.getTimeStamp();
         if (baseGraph.getNodes() == 0)
             throw new RuntimeException("Graph after reading OSM must not be empty");
-//        LOGGER.info("Finished reading OSM file: {}, nodes: {}, edges: {}, zero distance edges: {}",
-//                osmFile.getAbsolutePath(), nf(baseGraph.getNodes()), nf(baseGraph.getEdges()), nf(zeroCounter));
+        LOGGER.info("Finished reading OSM file: {}, nodes: {}, edges: {}",
+                osmFile.getAbsolutePath(), nf(baseGraph.getNodes()), nf(baseGraph.getEdges()));
         finishedReading();
     }
     

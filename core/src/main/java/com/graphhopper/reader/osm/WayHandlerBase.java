@@ -1,15 +1,17 @@
 package com.graphhopper.reader.osm;
 
+import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderWay;
 import com.graphhopper.routing.util.OSMParsers;
 
-public abstract class WayHandlerBase {
+public abstract class WayHandlerBase extends ElementHandler {
 	protected final OSMParsers osmParsers;
     /**
      * All OSM ways that are not accepted here and all nodes 
      * that are not referenced by any such way will be ignored.
      */
 	public WayHandlerBase(OSMParsers osmParsers) {
+	    super(ReaderElement.Type.WAY);
 		this.osmParsers = osmParsers;
 	}
 	
@@ -24,5 +26,4 @@ public abstract class WayHandlerBase {
 
         return osmParsers.acceptWay(way);
     }
-
 }
