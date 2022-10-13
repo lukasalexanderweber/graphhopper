@@ -13,6 +13,7 @@ public class OSMTurnRestrictionData {
     public GHLongHashSet osmWayIdSet = new GHLongHashSet();
     // for via way restrictions we additionally need to store all ReaderWay objects which are part of the restriction
     public HashMap<Long, ReaderWay> osmWayMap = new HashMap<>();
+    public ArrayList<NodeRestriction> nodeRestrictions = new ArrayList<>();
     public ArrayList<WayRestriction> wayRestrictions = new ArrayList<>();
     public HashMap<Long, Long> artificialViaNodes = new HashMap<>();
     // for every via way restriction we build artificial node restrictions

@@ -41,8 +41,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
 	
 	@Override
 	public void onFinish() {
-	    LOGGER.info("pass0 - finished reading OSM relations, processed relations: ",
-	                    nf(counter) + ", " + Helper.getMemInfo());
+	    LOGGER.info("pass0 - finished reading OSM relations, processed relations: " + nf(counter));
 	}
 
     protected void preprocessRelation(ReaderRelation relation) {        
@@ -65,6 +64,13 @@ public class RelationPreprocessor extends RelationHandlerBase {
             List<OSMTurnRestriction> turnRestrictions = createTurnRestrictions(relation);
             for (OSMTurnRestriction turnRestriction : turnRestrictions) {
                 ArrayList<Long> ways = turnRestriction.getWays();
+                
+                if (turnRestriction.getViaType() == ViaType.NODE) {
+                    restrictionData.nodeRestrictions.add(new NodeRestriction(
+                                    turnRestriction.getOsmIdFrom(), 
+                                    turnRestriction.getViaOSMIds().get(0), 
+                                    turnRestriction.getOsmIdTo()));
+                }
                 
                 if (turnRestriction.getViaType() == ViaType.WAY) {
                     restrictionData.wayRestrictions.add(new WayRestriction(relation.getId(), ways));
