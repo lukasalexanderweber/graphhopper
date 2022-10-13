@@ -45,7 +45,9 @@ public class OSMTurnRestrictionBuilder {
                     NodeRestriction r = restriction.getRestrictions().get(0);
                     NodeRestriction r2 = restriction.getRestrictions().get(1);
     
-                    createArtificialViaNode(r.getVia(), nodeData);
+                    long via = r.getVia();
+                    SegmentNode artificalNode = nodeData.addCopyOfNodeAsTowerNode(new SegmentNode(via, nodeData.getId(via)));
+                    restrictionData.artificialViaNodes.put(via, artificalNode.osmNodeId);
     
                     // manipulate the first edge
                     // 1.
@@ -130,12 +132,7 @@ public class OSMTurnRestrictionBuilder {
 		}
 		return towerCount;
     }
-    
-    protected void createArtificialViaNode(Long via, OSMNodeData nodeData) {
-        SegmentNode artificalNode = nodeData.addCopyOfNodeAsTowerNode(new SegmentNode(via, nodeData.getId(via)));
-        restrictionData.artificialViaNodes.put(via, artificalNode.osmNodeId);
-    }
-    
+        
     protected void fallback(WayRestriction restriction) {
     	// handle the ignored start way if restriction is invalid
         long startId = restriction.getWays().get(0);
