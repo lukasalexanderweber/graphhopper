@@ -14,6 +14,7 @@ import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.routing.util.parsers.TurnCostParser;
 import com.graphhopper.storage.BaseGraph;
 import com.graphhopper.storage.TurnCostStorage;
+import com.graphhopper.util.errors.TurnRestrictionException;
 
 public class RelationHandler extends RelationHandlerBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(RelationHandler.class);
@@ -73,7 +74,12 @@ public class RelationHandler extends RelationHandlerBase {
             };
             for (OSMTurnRestriction turnRestriction : createTurnRestrictions(relation)) {
                 if (turnRestriction.getViaType() == OSMTurnRestriction.ViaType.NODE)
-                    osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                    try {
+                        osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                    } catch (TurnRestrictionException e) {
+                        LOGGER.info("failed: " + turnRestriction.getId() + " - " + e);
+                        e.printStackTrace();
+                    }
                 if (turnRestriction.getViaType() == OSMTurnRestriction.ViaType.WAY) {
                     if (!restrictionData.artificialNodeRestrictions.containsKey(turnRestriction.getId()))
                         return;
@@ -81,7 +87,11 @@ public class RelationHandler extends RelationHandlerBase {
                         turnRestriction.fromOsmWayId = nodeRestriction.getFrom();
                         turnRestriction.viaOSMIds = new ArrayList<>(Arrays.asList(nodeRestriction.getVia()));
                         turnRestriction.toOsmWayId = nodeRestriction.getTo();
-                        osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                        try {
+                            osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                        } catch (TurnRestrictionException e) {
+                            LOGGER.info("failed: " + turnRestriction.getId() + " - " + e);
+                        }
                     }
                 }
             }

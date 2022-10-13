@@ -19,6 +19,7 @@ package com.graphhopper.routing.util.parsers;
 
 import com.graphhopper.reader.osm.OSMTurnRestriction;
 import com.graphhopper.storage.Graph;
+import com.graphhopper.util.errors.TurnRestrictionException;
 
 /**
  * This interface serves the purpose of converting relation flags into turn cost information. Unlike RelationTagParser
@@ -27,7 +28,7 @@ import com.graphhopper.storage.Graph;
 public interface TurnCostParser {
     String getName();
 
-    void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, ExternalInternalMap map, Graph graph);
+    void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, ExternalInternalMap map, Graph graph) throws TurnRestrictionException;
 
     /**
      * This map associates the internal GraphHopper nodes IDs with external IDs (OSM) and similarly for the edge IDs

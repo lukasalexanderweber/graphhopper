@@ -28,6 +28,7 @@ import com.graphhopper.routing.util.parsers.TagParser;
 import com.graphhopper.routing.util.parsers.TurnCostParser;
 import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.IntsRef;
+import com.graphhopper.util.errors.TurnRestrictionException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,8 +95,10 @@ public class OSMParsers {
         return edgeFlags;
     }
 
-    public void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, TurnCostParser.ExternalInternalMap map, Graph graph) {
-        turnCostParsers.forEach(t -> t.handleTurnRestrictionTags(turnRestriction, map, graph));
+    public void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, TurnCostParser.ExternalInternalMap map, Graph graph) throws TurnRestrictionException {
+        for (TurnCostParser t : turnCostParsers) {
+            t.handleTurnRestrictionTags(turnRestriction, map, graph);
+        }
     }
 
     public IntsRef createRelationFlags() {

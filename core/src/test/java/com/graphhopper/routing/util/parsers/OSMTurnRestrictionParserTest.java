@@ -6,6 +6,8 @@ import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.TransportationMode;
 import com.graphhopper.storage.BaseGraph;
 import com.graphhopper.util.GHUtility;
+import com.graphhopper.util.errors.TurnRestrictionException;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -21,7 +23,7 @@ public class OSMTurnRestrictionParserTest {
     static EncodingManager em = EncodingManager.start().add(accessEnc).add(speedEnc).addTurnCostEncodedValue(turnCostEnc).build();
 
     @Test
-    public void testOnlyRestriction() {
+    public void testOnlyRestriction() throws TurnRestrictionException {
         OSMTurnRestriction restriction = new OSMTurnRestriction(1, 4, 3, 3, OSMTurnRestriction.RestrictionType.ONLY, OSMTurnRestriction.ViaType.NODE);
         BaseGraph graph = parseRestrictionOnTestGraph(restriction);
 
@@ -31,7 +33,7 @@ public class OSMTurnRestrictionParserTest {
     }
 
     @Test
-    public void testNotRestriction() {
+    public void testNotRestriction() throws TurnRestrictionException {
         OSMTurnRestriction restriction = new OSMTurnRestriction(1, 4, 3, 3, OSMTurnRestriction.RestrictionType.NOT, OSMTurnRestriction.ViaType.NODE);
         BaseGraph graph = parseRestrictionOnTestGraph(restriction);
 
@@ -39,7 +41,7 @@ public class OSMTurnRestrictionParserTest {
     }
 
 
-    private static BaseGraph parseRestrictionOnTestGraph(OSMTurnRestriction restriction) {
+    private static BaseGraph parseRestrictionOnTestGraph(OSMTurnRestriction restriction) throws TurnRestrictionException {
         OSMTurnRestrictionParser parser = new OSMTurnRestrictionParser(accessEnc, turnCostEnc, OSMRoadAccessParser.toOSMRestrictions(TransportationMode.CAR));
         BaseGraph graph = new BaseGraph.Builder(em.getIntsForFlags()).withTurnCosts(true).create();
         initGraph(graph, accessEnc, speedEnc);

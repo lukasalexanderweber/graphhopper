@@ -25,6 +25,7 @@ import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.TurnCostStorage;
 import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIterator;
+import com.graphhopper.util.errors.TurnRestrictionException;
 
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
     }
 
     @Override
-    public void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, ExternalInternalMap map, Graph graph) {
+    public void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, ExternalInternalMap map, Graph graph) throws TurnRestrictionException {
         if (!turnRestriction.isVehicleTypeConcernedByTurnRestriction(restrictions))
             return;
 
@@ -63,26 +64,26 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
 
     /**
      * Add the specified relation to the TurnCostStorage
+     * @throws TurnRestrictionException 
      */
-    void addRestrictionToTCStorage(OSMTurnRestriction osmTurnRestriction, ExternalInternalMap map, Graph graph) {
+    void addRestrictionToTCStorage(OSMTurnRestriction osmTurnRestriction, ExternalInternalMap map, Graph graph) throws TurnRestrictionException {
         TurnCostStorage tcs = graph.getTurnCostStorage();
         int viaNode = map.getInternalNodeIdOfOsmNode(osmTurnRestriction.getViaOSMIds().get(0));
 
-        // street with restriction was not included (access or tag limits etc)
         if (viaNode < 0) {
-            return;
+            throw new TurnRestrictionException("street with restriction was not included (access or tag limits etc)");
         }
 
         EdgeExplorer edgeOutExplorer = getOutExplorer(graph), edgeInExplorer = getInExplorer(graph);
 
         try {
             int edgeIdFrom = EdgeIterator.NO_EDGE;
+            long from_osm_id = osmTurnRestriction.getOsmIdFrom();
 
             // get all incoming edges and receive the edge which is defined by fromOsm
             EdgeIterator iter = edgeInExplorer.setBaseNode(viaNode);
 
             while (iter.next()) {
-            	long from_osm_id = osmTurnRestriction.getOsmIdFrom();
             	int from_candidate_internal_id = iter.getEdge();
             	long from_candidate_osm_id = map.getOsmIdOfInternalEdge(from_candidate_internal_id);
                 if (from_candidate_osm_id == from_osm_id) {
@@ -92,7 +93,7 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
             }
 
             if (!EdgeIterator.Edge.isValid(edgeIdFrom))
-                return;
+                throw new TurnRestrictionException("The From OSM ID " + from_osm_id + " can not be mapped to the list of internal edges");
 
             // get all outgoing edges of the via node
             iter = edgeOutExplorer.setBaseNode(viaNode);
@@ -109,7 +110,7 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
                 }
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Could not built turn table entry for relation of node with osmId:" + viaNode, e);
+            throw new TurnRestrictionException("Could not built turn table entry for relation of node with osmId:" + viaNode + "; " + e);
         }
     }
 
