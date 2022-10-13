@@ -93,7 +93,7 @@ public class OSMTurnRestrictionParser implements TurnCostParser {
             }
 
             if (!EdgeIterator.Edge.isValid(edgeIdFrom))
-                throw new TurnRestrictionException("The From OSM ID " + from_osm_id + " can not be mapped to the list of internal edges");
+                throw new TurnRestrictionException("The from OSM ID " + from_osm_id + " can not be mapped to an internal edge coming from/to via node " + viaNode);
 
             // get all outgoing edges of the via node
             iter = edgeOutExplorer.setBaseNode(viaNode);

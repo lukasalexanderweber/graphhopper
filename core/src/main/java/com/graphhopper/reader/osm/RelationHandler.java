@@ -1,6 +1,7 @@
 package com.graphhopper.reader.osm;
 
 import static com.graphhopper.reader.osm.OSMNodeData.isTowerNode;
+import static com.graphhopper.util.Helper.nf;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,7 +53,10 @@ public class RelationHandler extends RelationHandlerBase {
     
     @Override
     public void onFinish() {
-        LOGGER.info("pass2 - finished reading OSM relations");
+        LOGGER.info("pass2 - finished reading OSM relations, processed node restrictions: {}, invalid node restrictions: {}, "
+                        + "processed way restrictions: {}, invalid way restrictions: {}",
+                        nf(restrictionData.node_restrictions), nf(restrictionData.invalid_node_restrictions), 
+                        nf(restrictionData.way_restrictions), nf(restrictionData.invalid_way_restrictions));
     }
     
     /**
@@ -77,12 +81,14 @@ public class RelationHandler extends RelationHandlerBase {
                     try {
                         osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
                     } catch (TurnRestrictionException e) {
-                        LOGGER.info("failed: " + turnRestriction.getId() + " - " + e);
-                        e.printStackTrace();
+                        restrictionData.invalid_node_restrictions++;
                     }
                 if (turnRestriction.getViaType() == OSMTurnRestriction.ViaType.WAY) {
-                    if (!restrictionData.artificialNodeRestrictions.containsKey(turnRestriction.getId()))
+                    if (!restrictionData.artificialNodeRestrictions.containsKey(turnRestriction.getId())) {
+                        restrictionData.invalid_way_restrictions++;
+                        LOGGER.info("|" + turnRestriction.getId() + "|failed|no artificial Node Restrictions");
                         return;
+                    }
                     for (NodeRestriction nodeRestriction : restrictionData.artificialNodeRestrictions.get(turnRestriction.getId())){
                         turnRestriction.fromOsmWayId = nodeRestriction.getFrom();
                         turnRestriction.viaOSMIds = new ArrayList<>(Arrays.asList(nodeRestriction.getVia()));
@@ -90,9 +96,12 @@ public class RelationHandler extends RelationHandlerBase {
                         try {
                             osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
                         } catch (TurnRestrictionException e) {
-                            LOGGER.info("failed: " + turnRestriction.getId() + " - " + e);
+                            restrictionData.invalid_way_restrictions++;
+                            LOGGER.info("|" + turnRestriction.getId() + "|failed|" + e.getMessage());
+                            return;
                         }
                     }
+                    LOGGER.info("|" + turnRestriction.getId() + "|success|");
                 }
             }
 

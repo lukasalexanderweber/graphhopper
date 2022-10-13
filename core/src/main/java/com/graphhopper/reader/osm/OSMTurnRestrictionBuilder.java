@@ -31,13 +31,15 @@ public class OSMTurnRestrictionBuilder {
             // for now we only work with single via-way restrictions 
             if (restriction.getWays().size() == 3) {
             	if (!allWaysHaveTwoTowerNodes(restriction, nodeData)) {
-            		LOGGER.info("failed: " + restriction.getId() + " - too much Tower Nodes");
+            		LOGGER.info("|" + restriction.getId() + "|failed|too much Tower Nodes");
+            		restrictionData.invalid_way_restrictions++;
             		fallback(restriction);
             		continue;
             	}
                 restriction.buildRestriction(restrictionData.osmWayMap);
                 if (!restriction.isValid()) {
-                    LOGGER.info("failed: " + restriction.getId() + " - invalid Restriction");
+                    LOGGER.info("|" + restriction.getId() + "|failed|invalid Restriction");
+                    restrictionData.invalid_way_restrictions++;
                     fallback(restriction);
                     continue;
                 }
@@ -98,14 +100,15 @@ public class OSMTurnRestrictionBuilder {
                     ArrayList<NodeRestriction> restrictions = new ArrayList<>();
                     restrictions.add(new NodeRestriction(newOsmId2, r.getVia(), r.getTo()));
                     restrictions.add(new NodeRestriction(newOsmId3, r2.getVia(), r2.getTo()));
-                    restrictions.add(new NodeRestriction(newOsmId2, restrictionData.artificialViaNodes.get(r.getVia()), newOsmId3));
+                    restrictions.add(new NodeRestriction(newOsmId2, restrictionData.artificialViaNodes.get(r.getVia()), newOsmId3)); // this is wrong!
                     restrictionData.artificialNodeRestrictions.put(restriction.getId(), restrictions);
                 } catch (Exception e) {
-                    LOGGER.info("failed: " + restriction.getId() + " " + e);
+                    LOGGER.info("|" + restriction.getId() + "|failed|" + e);
+                    restrictionData.invalid_way_restrictions++;
                     fallback(restriction);
                     continue;
                 }
-                LOGGER.info("success: " + restriction.getId());
+                LOGGER.info("|" + restriction.getId() + "|success|");
             }
         }
     }

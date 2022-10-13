@@ -96,9 +96,18 @@ public class OSMParsers {
     }
 
     public void handleTurnRestrictionTags(OSMTurnRestriction turnRestriction, TurnCostParser.ExternalInternalMap map, Graph graph) throws TurnRestrictionException {
+        boolean error = false;
+        TurnRestrictionException last_error = null;
         for (TurnCostParser t : turnCostParsers) {
-            t.handleTurnRestrictionTags(turnRestriction, map, graph);
+            try {
+                t.handleTurnRestrictionTags(turnRestriction, map, graph);
+            } catch (TurnRestrictionException e) {
+                error = true;
+                last_error = e;
+            }
         }
+        if (error)
+            throw new TurnRestrictionException(last_error.getMessage());
     }
 
     public IntsRef createRelationFlags() {

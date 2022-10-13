@@ -9,6 +9,10 @@ import com.graphhopper.coll.GHLongHashSet;
 import com.graphhopper.reader.ReaderWay;
 
 public class OSMTurnRestrictionData {	
+    public long node_restrictions = 0;
+    public long way_restrictions = 0;
+    public long invalid_node_restrictions = 0;
+    public long invalid_way_restrictions = 0;
     // stores osm way ids used by relations to identify which edge ids needs to be mapped later
     public GHLongHashSet osmWayIdSet = new GHLongHashSet();
     // for via way restrictions we additionally need to store all ReaderWay objects which are part of the restriction

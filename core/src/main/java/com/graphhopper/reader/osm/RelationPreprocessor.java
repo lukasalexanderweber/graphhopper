@@ -66,6 +66,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
                 ArrayList<Long> ways = turnRestriction.getWays();
                 
                 if (turnRestriction.getViaType() == ViaType.NODE) {
+                    restrictionData.node_restrictions++;
                     restrictionData.nodeRestrictions.add(new NodeRestriction(
                                     turnRestriction.getOsmIdFrom(), 
                                     turnRestriction.getViaOSMIds().get(0), 
@@ -73,6 +74,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
                 }
                 
                 if (turnRestriction.getViaType() == ViaType.WAY) {
+                    restrictionData.way_restrictions++;
                     restrictionData.wayRestrictions.add(new WayRestriction(relation.getId(), ways));
                     restrictionData.osmWayIdsToIgnore.add(ways.get(0));
                 }
