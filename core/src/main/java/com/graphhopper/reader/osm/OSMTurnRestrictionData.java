@@ -19,9 +19,7 @@ public class OSMTurnRestrictionData {
     public HashMap<Long, ReaderWay> osmWayMap = new HashMap<>();
     public ArrayList<NodeRestriction> nodeRestrictions = new ArrayList<>();
     public ArrayList<WayRestriction> wayRestrictions = new ArrayList<>();
-    public HashMap<Long, Long> artificialViaNodes = new HashMap<>();
     // for every via way restriction we build artificial node restrictions
     public HashMap<Long, ArrayList<NodeRestriction>> artificialNodeRestrictions = new HashMap<>();
-    public ArrayList<Long> osmWayIdsToIgnore = new ArrayList<>();
     public IntLongMap edgeIdToOsmWayIdMap = new GHIntLongHashMap(osmWayIdSet.size(), 0.5f);
 }

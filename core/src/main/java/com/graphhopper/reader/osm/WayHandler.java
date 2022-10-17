@@ -424,10 +424,6 @@ public class WayHandler extends WayHandlerBase {
      * @param nodeTags  node tags of this segment if it is an artificial edge, empty otherwise
      */
     protected void addEdge(int fromIndex, int toIndex, PointList pointList, ReaderWay way, Map<String, Object> nodeTags) {
-        if (restrictionData.osmWayIdsToIgnore.contains(way.getId())){
-            return;
-        }
-
     	// sanity checks
         if (fromIndex < 0 || toIndex < 0)
             throw new AssertionError("to or from index is invalid for this edge " + fromIndex + "->" + toIndex + ", points:" + pointList);

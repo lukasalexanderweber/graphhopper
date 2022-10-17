@@ -76,7 +76,6 @@ public class RelationPreprocessor extends RelationHandlerBase {
                 if (turnRestriction.getViaType() == ViaType.WAY) {
                     restrictionData.way_restrictions++;
                     restrictionData.wayRestrictions.add(new WayRestriction(relation.getId(), ways));
-                    restrictionData.osmWayIdsToIgnore.add(ways.get(0));
                 }
                 
                 for (Long wayId : ways) {
