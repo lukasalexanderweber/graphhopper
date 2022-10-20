@@ -3,14 +3,12 @@ package com.graphhopper.reader.osm;
 import static com.graphhopper.reader.osm.OSMNodeData.isTowerNode;
 import static com.graphhopper.util.Helper.nf;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.graphhopper.reader.ReaderElement;
 import com.graphhopper.reader.ReaderRelation;
+import com.graphhopper.reader.osm.OSMTurnRestriction.RestrictionType;
 import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.routing.util.parsers.TurnCostParser;
 import com.graphhopper.storage.BaseGraph;
@@ -89,17 +87,26 @@ public class RelationHandler extends RelationHandlerBase {
                         LOGGER.info("|" + turnRestriction.getId() + "|failed|no artificial Node Restrictions");
                         return;
                     }
+                    int counter = 0;
                     for (NodeRestriction nodeRestriction : restrictionData.artificialNodeRestrictions.get(turnRestriction.getId())){
-                        turnRestriction.fromOsmWayId = nodeRestriction.getFrom();
-                        turnRestriction.viaOSMIds = new ArrayList<>(Arrays.asList(nodeRestriction.getVia()));
-                        turnRestriction.toOsmWayId = nodeRestriction.getTo();
+                        OSMTurnRestriction artificialRestriction;
+                        // for one via way, a ONLY restriction is implemented by a NO
+                        // restriction followed by a ONLY restriction, so we have to manipulate the
+                        // restriction type as well
+                        if (counter == 0 && turnRestriction.getRestriction() == RestrictionType.ONLY) {
+                            artificialRestriction = new OSMTurnRestriction(turnRestriction, nodeRestriction, RestrictionType.NOT);
+                        } else {
+                            artificialRestriction = new OSMTurnRestriction(turnRestriction, nodeRestriction);
+                        }
+                        
                         try {
-                            osmParsers.handleTurnRestrictionTags(turnRestriction, map, baseGraph);
+                            osmParsers.handleTurnRestrictionTags(artificialRestriction, map, baseGraph);
                         } catch (TurnRestrictionException e) {
                             restrictionData.invalid_way_restrictions++;
                             LOGGER.info("|" + turnRestriction.getId() + "|failed|" + e.getMessage());
                             return;
                         }
+                        counter++;
                     }
                     LOGGER.info("|" + turnRestriction.getId() + "|success|");
                 }

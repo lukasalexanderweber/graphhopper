@@ -129,7 +129,7 @@ public class OSMReader {
     }
     
     public WayPreprocessor getWayPreprocessor() {
-    	return new WayPreprocessor(osmParsers, nodeData, restrictionData);
+    	return new WayPreprocessor(osmParsers, nodeData);
     }
     
     public RelationPreprocessor getRelationPreprocessor() {
@@ -167,20 +167,14 @@ public class OSMReader {
             throw new IllegalStateException("You can only read the graph once");
 
         LOGGER.info("Start reading OSM file: '" + osmFile + "'");
-        LOGGER.info("preprocessing relations - start");
-        StopWatch sw0 = StopWatch.started();
-        OSMParser parse0 = new OSMParser()
-                        .setFileheaderHandler(new FileHeaderHandler())
-                        .setRelationHandler(getRelationPreprocessor());
-        parse0.readOSM(osmFile, workerThreads);
-        LOGGER.info("preprocessing relations - finished, took: {}", sw0.stop().getTimeString());
-        
-        LOGGER.info("preprocessing ways - start");
+        LOGGER.info("preprocessing ways and relations - start");
         StopWatch sw1 = StopWatch.started();
         OSMParser parse1 = new OSMParser()
-                        .setWayHandler(getWayPreprocessor());
+                        .setFileheaderHandler(new FileHeaderHandler())
+                        .setWayHandler(getWayPreprocessor())
+                        .setRelationHandler(getRelationPreprocessor());
         parse1.readOSM(osmFile, workerThreads);
-        LOGGER.info("preprocessing ways - finished, took: {}", sw1.stop().getTimeString());
+        LOGGER.info("preprocessing ways and relations - finished, took: {}", sw1.stop().getTimeString());
 
         long nodes = nodeData.getNodeCount();
 
@@ -198,12 +192,11 @@ public class OSMReader {
         nodeData.release();
 
         LOGGER.info("Finished reading OSM file." +
-                " pass0: " + (int) sw0.getSeconds() + "s, " +
                 " pass1: " + (int) sw1.getSeconds() + "s, " +
                 " pass2: " + (int) sw2.getSeconds() + "s, " +
-                " total: " + (int) (sw0.getSeconds() + sw1.getSeconds() + sw2.getSeconds()) + "s");
+                " total: " + (int) (sw1.getSeconds() + sw2.getSeconds()) + "s");
 
-        osmDataDate = parse0.getTimeStamp();
+        osmDataDate = parse1.getTimeStamp();
         if (baseGraph.getNodes() == 0)
             throw new RuntimeException("Graph after reading OSM must not be empty");
         LOGGER.info("Finished reading OSM file: {}, nodes: {}, edges: {}",

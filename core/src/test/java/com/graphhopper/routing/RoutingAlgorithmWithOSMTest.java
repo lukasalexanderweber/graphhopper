@@ -214,7 +214,8 @@ public class RoutingAlgorithmWithOSMTest {
     @Test
     public void testViaWayTurnRestriction() {
         List<Query> list = new ArrayList<>();
-        list.add(new Query(0.0506, 0.01, 0.0506, 0.014, 1200.907, 8));
+        list.add(new Query(0.05, 0.01, 0.05, 0.014, 1334.34, 7));
+        list.add(new Query(0.05, 0.01, 0.052, 0.014, 667.17, 3));
         GraphHopper hopper = createHopper(DIR + "/test_way_restrictions.osm.xml",
                 new Profile("car").setVehicle("car").setWeighting("fastest").setTurnCosts(true));
         hopper.importOrLoad();

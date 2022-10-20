@@ -105,11 +105,19 @@ public class WayHandler extends WayHandlerBase {
         if (!acceptWay(way))
             return;
         
+        mapWayIfPartOfViaWayTurnRestriction(way);
+        
         List<SegmentNode> segment = new ArrayList<>(way.getNodes().size());
         for (LongCursor node : way.getNodes())
             segment.add(new SegmentNode(node.value, nodeData.getId(node.value)));
         preprocessWay(way, osmNodeId -> nodeData.getCoordinates(nodeData.getId(osmNodeId)));
         splitWayAtJunctionsAndEmptySections(segment, way);
+    }
+    
+    protected void mapWayIfPartOfViaWayTurnRestriction(ReaderWay way) {
+        if (restrictionData.osmWayMap.containsKey(way.getId())) {
+            restrictionData.osmWayMap.put(way.getId(), way);
+        }
     }
     
     /**

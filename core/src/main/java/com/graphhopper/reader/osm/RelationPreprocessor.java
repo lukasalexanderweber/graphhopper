@@ -13,7 +13,6 @@ import com.graphhopper.reader.ReaderRelation;
 import com.graphhopper.reader.osm.OSMTurnRestriction.ViaType;
 import com.graphhopper.routing.util.OSMParsers;
 import com.graphhopper.storage.IntsRef;
-import com.graphhopper.util.Helper;
 
 public class RelationPreprocessor extends RelationHandlerBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(RelationPreprocessor.class);
@@ -29,7 +28,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
 	
 	@Override
 	public void onStart() {
-	    LOGGER.info("pass0 - start reading OSM relations");
+	    LOGGER.info("pass1 - start reading OSM relations");
 	}
 	
 	@Override
@@ -41,7 +40,7 @@ public class RelationPreprocessor extends RelationHandlerBase {
 	
 	@Override
 	public void onFinish() {
-	    LOGGER.info("pass0 - finished reading OSM relations, processed relations: " + nf(counter));
+	    LOGGER.info("pass1 - finished reading OSM relations, processed relations: " + nf(counter));
 	}
 
     protected void preprocessRelation(ReaderRelation relation) {        
@@ -67,10 +66,6 @@ public class RelationPreprocessor extends RelationHandlerBase {
                 
                 if (turnRestriction.getViaType() == ViaType.NODE) {
                     restrictionData.node_restrictions++;
-                    restrictionData.nodeRestrictions.add(new NodeRestriction(
-                                    turnRestriction.getOsmIdFrom(), 
-                                    turnRestriction.getViaOSMIds().get(0), 
-                                    turnRestriction.getOsmIdTo()));
                 }
                 
                 if (turnRestriction.getViaType() == ViaType.WAY) {

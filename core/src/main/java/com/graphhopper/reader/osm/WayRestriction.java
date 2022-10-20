@@ -20,7 +20,6 @@ public class WayRestriction {
         this.id = id;
         this.ways = ways;
         this.restrictions = new ArrayList<NodeRestriction>(2);
-        this.startNode = -1L;
         this.valid = false;
     }
 
@@ -35,8 +34,6 @@ public class WayRestriction {
             Long via = getViaNode(from, to);
             restrictions.add(new NodeRestriction(fromId, via, toId));
         }
-        Long startId = ways.get(0);
-        setStartNode(wayMap.get(startId));
         valid = true;
     }
 
@@ -52,16 +49,6 @@ public class WayRestriction {
             throw new IllegalStateException("No Via Node found!");
     }
 
-    private void setStartNode(ReaderWay startWay) {
-        Long startVia = restrictions.get(0).getVia();
-        Long[] startEndnodes = startWay.getEndNodes();
-        
-        if (startEndnodes[0] == startVia)
-            startNode = startEndnodes[1];
-        else 
-            startNode = startEndnodes[0];
-    }
-
     public Long getId() {
         return id;
     }
@@ -69,7 +56,7 @@ public class WayRestriction {
     public List<Long> getWays() {
         return ways;
     }
-
+    
 	public boolean isValid() {
 		return valid;
 	}

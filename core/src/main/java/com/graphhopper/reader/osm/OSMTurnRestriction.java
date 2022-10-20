@@ -26,9 +26,9 @@ import java.util.*;
  */
 public class OSMTurnRestriction {
     private final long id;
-    public long fromOsmWayId;
-    public List<Long> viaOSMIds;
-    public long toOsmWayId;
+    private long fromOsmWayId;
+    private List<Long> viaOSMIds;
+    private long toOsmWayId;
     private final RestrictionType restriction;
     private final ViaType viaType;
     // vehicleTypeRestricted contains the dedicated vehicle type
@@ -51,7 +51,18 @@ public class OSMTurnRestriction {
     public OSMTurnRestriction(long id, long fromWayID, long viaId, long toWayID, RestrictionType restrictionType, ViaType viaType) {
         this(id, fromWayID, new ArrayList<>(Arrays.asList(viaId)), toWayID, restrictionType, viaType);
     }
+        
+    // constructor for artificial restrictions
+    public OSMTurnRestriction(OSMTurnRestriction that, NodeRestriction nodeRestriction) {
+        this(that, nodeRestriction, that.getRestriction());
+    }
 
+    // constructor for artificial restrictions with RestrictionType manipulation
+    public OSMTurnRestriction(OSMTurnRestriction that, NodeRestriction nodeRestriction, RestrictionType restrictionType) {
+        this(that.getId(), nodeRestriction.getFrom(), nodeRestriction.getVia(), nodeRestriction.getTo(), restrictionType, that.getViaType());
+    }
+
+    
     public long getId() {
         return id;
     }
