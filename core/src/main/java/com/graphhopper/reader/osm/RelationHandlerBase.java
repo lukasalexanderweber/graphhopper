@@ -73,12 +73,9 @@ public abstract class RelationHandlerBase extends ElementHandler {
                 }
                 // ONE OR MORE VIA WAYS
                 else if (ReaderElement.Type.WAY == member.getType() && "via".equals(member.getRole())) {
-                    if (viaType == OSMTurnRestriction.ViaType.UNSUPPORTED) {
+                    if (viaType != OSMTurnRestriction.ViaType.NODE) {
                         viaIDs.add(member.getRef());
                         viaType = OSMTurnRestriction.ViaType.WAY;
-                    } else if (viaType == OSMTurnRestriction.ViaType.WAY || viaType == OSMTurnRestriction.ViaType.MULTI_WAY) {
-                        viaIDs.add(member.getRef());
-                        viaType = OSMTurnRestriction.ViaType.MULTI_WAY;
                     }
                 }
             }

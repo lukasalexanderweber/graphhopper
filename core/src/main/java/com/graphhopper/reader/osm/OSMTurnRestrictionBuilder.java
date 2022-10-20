@@ -28,39 +28,51 @@ public class OSMTurnRestrictionBuilder {
     
     public void buildRestrictions() {
         for (WayRestriction restriction : restrictionData.wayRestrictions) {
-            // for now we only work with single via-way restrictions 
-            if (restriction.getWays().size() == 3) {
-            	if (!allWaysHaveTwoTowerNodes(restriction, nodeData)) {
-            		LOGGER.info("|" + restriction.getId() + "|failed|too much Tower Nodes");
-            		restrictionData.invalid_way_restrictions++;
-            		continue;
-            	}
-                restriction.buildRestriction(restrictionData.osmWayMap);
-                if (!restriction.isValid()) {
-                    LOGGER.info("|" + restriction.getId() + "|failed|invalid Restriction");
-                    restrictionData.invalid_way_restrictions++;
-                    continue;
-                }
-                try {
-                    NodeRestriction r = restriction.getRestrictions().get(0);
-                    NodeRestriction r2 = restriction.getRestrictions().get(1);
+            if (!allWaysHaveTwoTowerNodes(restriction, nodeData)) {
+                LOGGER.info("|" + restriction.getId() + "|failed|too much Tower Nodes");
+                restrictionData.invalid_way_restrictions++;
+                continue;
+            }
+            restriction.buildRestriction(restrictionData.osmWayMap);
+            if (!restriction.isValid()) {
+                LOGGER.info("|" + restriction.getId() + "|failed|invalid Restriction");
+                restrictionData.invalid_way_restrictions++;
+                continue;
+            }
+            try {
+                int nRestrictions = restriction.getRestrictions().size();
+                ArrayList<NodeRestriction> restrictions = new ArrayList<>();
+                Long previousNewWay = null;
+                
+                for (int i = 0; i < nRestrictions - 1; i++) {
+                    NodeRestriction r = restriction.getRestrictions().get(i);
+                    NodeRestriction r2 = restriction.getRestrictions().get(i+1);
 
                     long from = r.getVia();
                     long to = r2.getVia();
                     long newWay = addArtificialWay(from, to, restrictionData.osmWayMap.get(r.getTo()));
-                                        
-                    ArrayList<NodeRestriction> restrictions = new ArrayList<>();
-                    restrictions.add(new NodeRestriction(r.getFrom(), r.getVia(), r.getTo()));
-                    restrictions.add(new NodeRestriction(newWay, r2.getVia(), r2.getTo()));
-                    restrictionData.artificialNodeRestrictions.put(restriction.getId(), restrictions);
-
-                } catch (Exception e) {
-                    LOGGER.info("|" + restriction.getId() + "|failed|" + e);
-                    restrictionData.invalid_way_restrictions++;
-                    continue;
+                    
+                    if (i == 0)
+                        restrictions.add(new NodeRestriction(r.getFrom(), r.getVia(), r.getTo()));
+                    if (i > 0 && i < nRestrictions-1) {
+                        // prevent exiting the detour between two via ways (only if more than 1 via way)
+                        restrictions.add(new NodeRestriction(r.getFrom(), r.getVia(), newWay));
+                        restrictions.add(new NodeRestriction(previousNewWay, r.getVia(), r.getTo()));
+                    }
+                    if (i == nRestrictions-2)
+                        restrictions.add(new NodeRestriction(newWay, r2.getVia(), r2.getTo()));
+                    
+                    previousNewWay = newWay;
                 }
-                LOGGER.info("|" + restriction.getId() + "|success|");
+                
+                restrictionData.artificialNodeRestrictions.put(restriction.getId(), restrictions);
+
+            } catch (Exception e) {
+                LOGGER.info("|" + restriction.getId() + "|failed|" + e);
+                restrictionData.invalid_way_restrictions++;
+                continue;
             }
+            LOGGER.info("|" + restriction.getId() + "|success|");
         }
     }
 

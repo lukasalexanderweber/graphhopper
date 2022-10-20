@@ -3,6 +3,8 @@ package com.graphhopper.reader.osm;
 import static com.graphhopper.reader.osm.OSMNodeData.isTowerNode;
 import static com.graphhopper.util.Helper.nf;
 
+import java.util.ArrayList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,26 +89,29 @@ public class RelationHandler extends RelationHandlerBase {
                         LOGGER.info("|" + turnRestriction.getId() + "|failed|no artificial Node Restrictions");
                         return;
                     }
-                    int counter = 0;
-                    for (NodeRestriction nodeRestriction : restrictionData.artificialNodeRestrictions.get(turnRestriction.getId())){
-                        OSMTurnRestriction artificialRestriction;
-                        // for one via way, a ONLY restriction is implemented by a NO
-                        // restriction followed by a ONLY restriction, so we have to manipulate the
-                        // restriction type as well
-                        if (counter == 0 && turnRestriction.getRestriction() == RestrictionType.ONLY) {
-                            artificialRestriction = new OSMTurnRestriction(turnRestriction, nodeRestriction, RestrictionType.NOT);
+                    
+                    ArrayList<NodeRestriction> artificialNodeRestrictions = restrictionData.artificialNodeRestrictions.get(turnRestriction.getId());
+                    
+                    for (int i = 0; i < artificialNodeRestrictions.size(); i++){
+                        NodeRestriction nodeRestriction = artificialNodeRestrictions.get(i);
+                        OSMTurnRestriction artificialOSMTurnRestriction;
+                        
+                        // for via ways, a ONLY restriction is implemented by multiple NOT
+                        // restrictions, only the last restriction is an ONLY restriction;
+                        // NO via way restrictions are all NOT
+                        if (i == artificialNodeRestrictions.size() - 1 && turnRestriction.getRestriction() == RestrictionType.ONLY) {
+                            artificialOSMTurnRestriction = new OSMTurnRestriction(turnRestriction, nodeRestriction, RestrictionType.ONLY);
                         } else {
-                            artificialRestriction = new OSMTurnRestriction(turnRestriction, nodeRestriction);
+                            artificialOSMTurnRestriction = new OSMTurnRestriction(turnRestriction, nodeRestriction, RestrictionType.NOT);
                         }
                         
                         try {
-                            osmParsers.handleTurnRestrictionTags(artificialRestriction, map, baseGraph);
+                            osmParsers.handleTurnRestrictionTags(artificialOSMTurnRestriction, map, baseGraph);
                         } catch (TurnRestrictionException e) {
                             restrictionData.invalid_way_restrictions++;
                             LOGGER.info("|" + turnRestriction.getId() + "|failed|" + e.getMessage());
                             return;
                         }
-                        counter++;
                     }
                     LOGGER.info("|" + turnRestriction.getId() + "|success|");
                 }

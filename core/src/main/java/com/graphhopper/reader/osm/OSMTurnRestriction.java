@@ -53,11 +53,6 @@ public class OSMTurnRestriction {
     }
         
     // constructor for artificial restrictions
-    public OSMTurnRestriction(OSMTurnRestriction that, NodeRestriction nodeRestriction) {
-        this(that, nodeRestriction, that.getRestriction());
-    }
-
-    // constructor for artificial restrictions with RestrictionType manipulation
     public OSMTurnRestriction(OSMTurnRestriction that, NodeRestriction nodeRestriction, RestrictionType restrictionType) {
         this(that.getId(), nodeRestriction.getFrom(), nodeRestriction.getVia(), nodeRestriction.getTo(), restrictionType, that.getViaType());
     }
@@ -82,7 +77,7 @@ public class OSMTurnRestriction {
     public ArrayList<Long> getWays() {
         ArrayList<Long> ways = new ArrayList<>();
         ways.add(fromOsmWayId);
-        if (viaType == ViaType.WAY || viaType == ViaType.MULTI_WAY) {
+        if (viaType == ViaType.WAY) {
             ways.addAll(viaOSMIds);
         }
         ways.add(toOsmWayId);
@@ -156,6 +151,6 @@ public class OSMTurnRestriction {
     }
 
     public enum ViaType {
-        UNSUPPORTED, NODE, WAY, MULTI_WAY;
+        UNSUPPORTED, NODE, WAY;
     }
 }

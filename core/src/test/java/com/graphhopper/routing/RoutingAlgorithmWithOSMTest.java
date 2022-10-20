@@ -223,6 +223,17 @@ public class RoutingAlgorithmWithOSMTest {
     }
     
     @Test
+    public void testMultiViaWayTurnRestriction() {
+        List<Query> list = new ArrayList<>();
+        list.add(new Query(0.05, 0.01, 0.05, 0.016, 2001.51, 10));
+        list.add(new Query(0.05, 0.01, 0.056, 0.016, 1334.34, 7));
+        GraphHopper hopper = createHopper(DIR + "/test_multi_way_restrictions.osm.xml",
+                new Profile("car").setVehicle("car").setWeighting("fastest").setTurnCosts(true));
+        hopper.importOrLoad();
+        checkQueries(hopper, list);
+    }
+    
+    @Test
     public void testSimplePTurn() {
         List<Query> list = new ArrayList<>();
         list.add(new Query(0, 0.00099, -0.00099, 0, 664, 6));
