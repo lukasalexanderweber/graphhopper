@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class RestrictionSetterTest {
     private static final IntArrayList NO_PATH = IntArrayList.from();
@@ -158,11 +157,9 @@ public class RestrictionSetterTest {
                 new Pair<>(GraphRestriction.way(d, a, b, nodes(4, 3)), RestrictionType.NO)
         ), turnCostEnc);
 
+        // todo: add more checks
         assertEquals(nodes(0, 3, 7, 8, 9), calcPath(0, 9, turnCostEnc));
         assertEquals(nodes(5, 4, 3, 7, 10, 11, 8, 9), calcPath(5, 9, turnCostEnc));
-        assertEquals(nodes(5, 4, 3, 2), calcPath(5, 2, turnCostEnc));
-        assertEquals(nodes(0, 3, 7, 10), calcPath(0, 10, turnCostEnc));
-        assertEquals(nodes(6, 7, 8, 9), calcPath(6, 9, turnCostEnc));
     }
 
     @Test
@@ -186,6 +183,7 @@ public class RestrictionSetterTest {
                 new Pair<>(GraphRestriction.way(a, d, f, nodes(2, 5)), RestrictionType.ONLY),
                 // we add a few more restrictions, because that happens a lot in real data
                 new Pair<>(GraphRestriction.way(c, d, g, nodes(2, 5)), RestrictionType.NO),
+                new Pair<>(GraphRestriction.way(g, d, c, nodes(5, 2)), RestrictionType.ONLY),
                 new Pair<>(GraphRestriction.node(e, 5, f), RestrictionType.NO)
         ), turnCostEnc);
         // following the restriction is allowed of course
@@ -211,15 +209,86 @@ public class RestrictionSetterTest {
         int d = edge(2, 3);
         int e = edge(2, 4);
         DecimalEncodedValue turnCostEnc = createTurnCostEnc("car");
-        assertThrows(IllegalStateException.class, () -> r.setRestrictions(Arrays.asList(
-                        // These are two 'only' via-way restrictions that share the same via way. A real-world example can
-                        // be found in Rüdesheim am Rhein where vehicles either have to go straight or enter the ferry depending
-                        // on the from-way, even though they use the same via way before.
-                        // We have to make sure such cases are ignored already when we parse the OSM data.
-                        new Pair<>(GraphRestriction.way(a, c, d, nodes(1, 2)), RestrictionType.ONLY),
-                        new Pair<>(GraphRestriction.way(b, c, e, nodes(1, 2)), RestrictionType.ONLY)
-                ), turnCostEnc)
-        );
+        r.setRestrictions(Arrays.asList(
+                new Pair<>(GraphRestriction.way(a, c, d, nodes(1, 2)), RestrictionType.ONLY),
+                new Pair<>(GraphRestriction.way(b, c, e, nodes(1, 2)), RestrictionType.ONLY)
+        ), turnCostEnc);
+        assertEquals(nodes(0, 1, 2, 3), calcPath(0, 3, turnCostEnc));
+    }
+    
+    @Test
+    void viaWay_overlapping_no_only() {
+        //         3
+        //   a   b |c  
+        // 0---1---2---4
+        //           d |e
+        //             5
+        int a = edge(0, 1);
+        int b = edge(1, 2);
+        int c = edge(2, 3);
+        int d = edge(2, 4);
+        int e = edge(4, 5);
+        DecimalEncodedValue turnCostEnc = createTurnCostEnc("car");
+        r.setRestrictions(Arrays.asList(
+                new Pair<>(GraphRestriction.way(a, b, c, nodes(1, 2)), RestrictionType.NO),
+                new Pair<>(GraphRestriction.way(b, d, e, nodes(2, 4)), RestrictionType.ONLY)
+        ), turnCostEnc);
+        assertEquals(nodes(0, 1, 2, 4, 5), calcPath(0, 5, turnCostEnc));
+    }
+
+    @Test
+    void multiViaWay_not() {
+        //   a   b
+        // 0---1---2
+        //    c| e |d
+        //     3---4
+        //   g |f
+        // 5---6---7
+        //       h
+
+        int a = edge(0, 1);
+        int b = edge(1, 2);
+        int c = edge(1, 3);
+        int d = edge(2, 4);
+        int e = edge(3, 4);
+        int f = edge(3, 6);
+        int g = edge(5, 6);
+        int h = edge(6, 7);
+        DecimalEncodedValue turnCostEnc = createTurnCostEnc("car");
+        IntArrayList viaWays = new IntArrayList();
+        viaWays.add(c);
+        viaWays.add(f);
+        r.setRestrictions(Arrays.asList(
+                new Pair<>(GraphRestriction.way(a, viaWays, g, nodes(1, 3, 6)), RestrictionType.NO)
+        ), turnCostEnc);
+        assertEquals(nodes(0, 1, 2, 4, 3, 6, 5), calcPath(0, 5, turnCostEnc));
+        assertEquals(nodes(0, 1, 3, 6, 7), calcPath(0, 7, turnCostEnc));
+    }
+    
+    @Test
+    void multiViaWay_only() {
+        //   a   b   c
+        // 0---1---2---3
+        //     |d  |e  |f
+        //     4---5---6
+        //       g   h
+
+        int a = edge(0, 1);
+        int b = edge(1, 2);
+        int c = edge(2, 3);
+        int d = edge(1, 4);
+        int e = edge(2, 5);
+        int f = edge(3, 6);
+        int g = edge(4, 5);
+        int h = edge(5, 6);
+        DecimalEncodedValue turnCostEnc = createTurnCostEnc("car");
+        IntArrayList viaWays = new IntArrayList();
+        viaWays.add(b);
+        viaWays.add(c);
+        r.setRestrictions(Arrays.asList(
+                new Pair<>(GraphRestriction.way(a, viaWays, f, nodes(1, 2, 3)), RestrictionType.ONLY)
+        ), turnCostEnc);
+        assertEquals(nodes(0, 1, 2, 3, 6, 5, 4), calcPath(0, 4, turnCostEnc));
     }
 
     private static DecimalEncodedValue createTurnCostEnc(String name) {
