@@ -18,7 +18,8 @@
 
 package com.graphhopper.routing.util.parsers;
 
-import com.carrotsearch.hppc.*;
+import com.carrotsearch.hppc.IntIntHashMap;
+import com.carrotsearch.hppc.IntIntMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.graphhopper.reader.osm.GraphRestriction;
 import com.graphhopper.reader.osm.Pair;
@@ -66,77 +67,100 @@ public class RestrictionSetter {
         for (Pair<GraphRestriction, RestrictionType> p : restrictions) {
             if (p.first.isViaWayRestriction()) {
                 if (ignoreViaWayRestriction(p)) continue;
-                int viaEdge = p.first.getViaEdges().get(0);
-                int artificialEdge = artificialEdgesByEdges.getOrDefault(viaEdge, -1);
-                if (artificialEdge < 0) {
-                    EdgeIteratorState viaEdgeState = baseGraph.getEdgeIteratorState(p.first.getViaEdges().get(0), Integer.MIN_VALUE);
-                    EdgeIteratorState artificialEdgeState = baseGraph.edge(viaEdgeState.getBaseNode(), viaEdgeState.getAdjNode())
-                            .setFlags(viaEdgeState.getFlags())
-                            .setWayGeometry(viaEdgeState.fetchWayGeometry(FetchMode.PILLAR_ONLY))
-                            .setDistance(viaEdgeState.getDistance())
-                            .setKeyValues(viaEdgeState.getKeyValues());
-                    artificialEdge = artificialEdgeState.getEdge();
-                    artificialEdgesByEdges.put(viaEdge, artificialEdge);
+                for (IntCursor viaEdgeCursor : p.first.getViaEdges()) {
+                    int viaEdge = viaEdgeCursor.value;
+                    int artificialEdge = artificialEdgesByEdges.getOrDefault(viaEdge, -1);
+                    if (artificialEdge < 0) {
+                        EdgeIteratorState viaEdgeState = baseGraph.getEdgeIteratorState(viaEdge, Integer.MIN_VALUE);
+                        EdgeIteratorState artificialEdgeState = baseGraph.edge(viaEdgeState.getBaseNode(), viaEdgeState.getAdjNode())
+                                .setFlags(viaEdgeState.getFlags())
+                                .setWayGeometry(viaEdgeState.fetchWayGeometry(FetchMode.PILLAR_ONLY))
+                                .setDistance(viaEdgeState.getDistance())
+                                .setKeyValues(viaEdgeState.getKeyValues());
+                        artificialEdge = artificialEdgeState.getEdge();
+                        artificialEdgesByEdges.put(viaEdge, artificialEdge);
+                    }
                 }
             }
         }
     }
 
     private void addViaWayRestrictions(List<Pair<GraphRestriction, RestrictionType>> restrictions, DecimalEncodedValue turnCostEnc) {
-        IntSet viaEdgesUsedByOnlyRestrictions = new IntHashSet();
         for (Pair<GraphRestriction, RestrictionType> p : restrictions) {
             if (!p.first.isViaWayRestriction()) continue;
             if (ignoreViaWayRestriction(p)) continue;
             final int fromEdge = p.first.getFromEdges().get(0);
-            final int viaEdge = p.first.getViaEdges().get(0);
             final int toEdge = p.first.getToEdges().get(0);
-            final int artificialVia = artificialEdgesByEdges.getOrDefault(viaEdge, viaEdge);
-            if (artificialVia == viaEdge)
-                throw new IllegalArgumentException("There should be an artificial edge for every via edge of a way restriction");
-            if (p.second == ONLY && !viaEdgesUsedByOnlyRestrictions.add(viaEdge))
-                throw new IllegalStateException("We cannot deal with 'only' via-way restrictions that use the same via edges");
             final int artificialFrom = artificialEdgesByEdges.getOrDefault(fromEdge, fromEdge);
             final int artificialTo = artificialEdgesByEdges.getOrDefault(toEdge, toEdge);
-            final int fromToViaNode = p.first.getViaNodes().get(0);
-            final int viaToToNode = p.first.getViaNodes().get(1);
+            
+            final int nViaEdges = p.first.getViaEdges().size();
+                        
+            for (int i = 0; i < nViaEdges; i++) {
+                int viaNode = p.first.getViaNodes().get(i);
+                int viaNode2 = p.first.getViaNodes().get(i+1);
+                int viaEdge = p.first.getViaEdges().get(i);
+                int artificialVia = artificialEdgesByEdges.getOrDefault(viaEdge, viaEdge);
+                if (artificialVia == viaEdge)
+                    throw new IllegalArgumentException("There should be an artificial edge for every via edge of a way restriction");
+                
+                // never turn between an artificial edge and its corresponding real edge
+                restrictTurn(turnCostEnc, artificialVia, viaNode, viaEdge);
+                restrictTurn(turnCostEnc, viaEdge, viaNode, artificialVia);
+                restrictTurn(turnCostEnc, artificialVia, viaNode2, viaEdge);
+                restrictTurn(turnCostEnc, viaEdge, viaNode2, artificialVia);
+                
+                if (i == 0) {
+                    if (p.second == NO) {
+                        restrictTurn(turnCostEnc, fromEdge, viaNode, viaEdge);
+                        // if there is an artificial from edge of an overlapping restriction 
+                        // we restrict it the same way as the from edge
+                        if (artificialFrom != fromEdge)
+                            restrictTurn(turnCostEnc, artificialFrom, viaNode, artificialVia);
+                    } else if (p.second == ONLY) {
+                        EdgeIterator iter = edgeExplorer.setBaseNode(viaNode);
+                        while (iter.next())
+                            if (artificialFrom != fromEdge) {
+                                if (iter.getEdge() != artificialFrom && iter.getEdge() != fromEdge && iter.getEdge() != artificialVia)
+                                    restrictTurn(turnCostEnc, fromEdge, viaNode, iter.getEdge());
+                            } else {
+                                if (iter.getEdge() != fromEdge && iter.getEdge() != artificialVia)
+                                    restrictTurn(turnCostEnc, fromEdge, viaNode, iter.getEdge());
+                            }
+                    }
+                }
+                
+                if (i > 0 && i < nViaEdges) {
+                    int oldArtificialViaEdge = artificialEdgesByEdges.get(p.first.getViaEdges().get(i-1));
+                    if (p.second == NO) {
+                        restrictTurn(turnCostEnc, oldArtificialViaEdge, viaNode, viaEdge);
+                    } else if (p.second == ONLY) {
+                        EdgeIterator iter = edgeExplorer.setBaseNode(viaNode);
+                        while (iter.next())
+                            if (iter.getEdge() != oldArtificialViaEdge && iter.getEdge() != artificialVia)
+                                restrictTurn(turnCostEnc, oldArtificialViaEdge, viaNode, iter.getEdge());
+                    }
+                }
 
-            // never turn between an artificial edge and its corresponding real edge
-            restrictTurn(turnCostEnc, artificialVia, fromToViaNode, viaEdge);
-            restrictTurn(turnCostEnc, viaEdge, fromToViaNode, artificialVia);
-            restrictTurn(turnCostEnc, artificialVia, viaToToNode, viaEdge);
-            restrictTurn(turnCostEnc, viaEdge, viaToToNode, artificialVia);
-
-            if (p.second == NO) {
-                // This is how we implement via-way NO restrictions: we deny turning from the from-edge onto the via-edge,
-                // but allow turning onto the artificial edge instead. Then we deny turning from the artificial edge onto
-                // the to edge.
-                restrictTurn(turnCostEnc, fromEdge, fromToViaNode, viaEdge);
-                restrictTurn(turnCostEnc, artificialVia, viaToToNode, toEdge);
-            } else if (p.second == ONLY) {
-                // For via-way ONLY restrictions we have to turn from the from-edge onto the via-edge and from the via-edge
-                // onto the to-edge, but only if we actually start at the from-edge. Therefore we enforce turning onto
-                // the artificial via-edge when we are coming from the from-edge and only allow turning onto the to-edge
-                // when coming from the artificial via-edge.
-                EdgeIterator iter = edgeExplorer.setBaseNode(fromToViaNode);
-                while (iter.next())
-                    if (iter.getEdge() != fromEdge && iter.getEdge() != artificialVia)
-                        restrictTurn(turnCostEnc, fromEdge, fromToViaNode, iter.getEdge());
-                iter = edgeExplorer.setBaseNode(viaToToNode);
-                while (iter.next())
-                    if (iter.getEdge() != artificialVia && iter.getEdge() != toEdge)
-                        restrictTurn(turnCostEnc, artificialVia, viaToToNode, iter.getEdge());
-            } else {
-                throw new IllegalArgumentException("Unexpected restriction type: " + p.second);
+                
+                if (i == nViaEdges - 1) {
+                    if (p.second == NO) {
+                        restrictTurn(turnCostEnc, artificialVia, viaNode2, toEdge);
+                        // if there is an artificial to edge of an overlapping restriction 
+                        // we restrict it the same way as the from edge
+                        if (artificialTo != toEdge)
+                            restrictTurn(turnCostEnc, artificialVia, viaNode2, artificialTo);
+                    } else if (p.second == ONLY) {
+                        EdgeIterator iter = edgeExplorer.setBaseNode(viaNode2);
+                        while (iter.next())
+                            if (iter.getEdge() != artificialVia && iter.getEdge() != toEdge)
+                                restrictTurn(turnCostEnc, artificialVia, viaNode2, iter.getEdge());
+                    }
+                }
             }
-
-            // this is important for overlapping restrictions
-            if (artificialFrom != fromEdge)
-                restrictTurn(turnCostEnc, artificialFrom, fromToViaNode, artificialVia);
-            if (artificialTo != toEdge)
-                restrictTurn(turnCostEnc, artificialVia, viaToToNode, artificialTo);
         }
     }
-
+        
     private void addViaNodeRestrictions(List<Pair<GraphRestriction, RestrictionType>> restrictions, DecimalEncodedValue turnCostEnc) {
         for (Pair<GraphRestriction, RestrictionType> p : restrictions) {
             if (p.first.isViaWayRestriction()) continue;
@@ -176,21 +200,28 @@ public class RestrictionSetter {
         }
     }
 
-    public IntIntMap getArtificialEdgesByEdges() {
-        return artificialEdgesByEdges;
-    }
-
     private void restrictTurn(DecimalEncodedValue turnCostEnc, int fromEdge, int viaNode, int toEdge) {
         if (fromEdge < 0 || toEdge < 0 || viaNode < 0)
             throw new IllegalArgumentException("from/toEdge and viaNode must be >= 0");
         baseGraph.getTurnCostStorage().set(turnCostEnc, fromEdge, viaNode, toEdge, Double.POSITIVE_INFINITY);
+//        if (type == RestrictionType.NO)
+//            prohibitoryRestriction(turnCostEnc, fromEdge, viaNode, toEdge);
+//        if (type == RestrictionType.ONLY)
+//            mandatoryRestriction(turnCostEnc, fromEdge, viaNode, toEdge);
     }
-
+    
+//    private void prohibitoryRestriction(DecimalEncodedValue turnCostEnc, int fromEdge, int viaNode, int toEdge) {
+//        baseGraph.getTurnCostStorage().set(turnCostEnc, fromEdge, viaNode, toEdge, Double.POSITIVE_INFINITY);
+//    }
+//    
+//    private void mandatoryRestriction(DecimalEncodedValue turnCostEnc, int fromEdge, int viaNode, int toEdge) {
+//        EdgeIterator iter = edgeExplorer.setBaseNode(viaNode);
+//        while (iter.next())
+//            if (iter.getEdge() != fromEdge && iter.getEdge() != toEdge)
+//                prohibitoryRestriction(turnCostEnc, fromEdge, viaNode, iter.getEdge());
+//    }
+    
     private static boolean ignoreViaWayRestriction(Pair<GraphRestriction, RestrictionType> p) {
-        // todo: how frequent are these?
-        if (p.first.getViaEdges().size() > 1)
-            // no multi-restrictions yet
-            return true;
         if (p.first.getFromEdges().size() > 1 || p.first.getToEdges().size() > 1)
             // no multi-from or -to yet
             return true;
